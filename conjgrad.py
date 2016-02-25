@@ -12,16 +12,16 @@ class ConjGradSolver(utils.CommonSolver):
     def __init__(self, k, p, J, l, y):
         super(ConjGradSolver, self).__init__(k, p, J, l, y)
 
+        self.Av = np.empty_like(y, dtype=np.float32)
+        self.Av2 = np.empty_like(y, dtype=np.float32)
+        self.Av_x = np.empty_like(y, dtype=np.float32)
+        self.Av_y = np.empty_like(y, dtype=np.float32)
+
         self.k_conj = np.flipud(np.fliplr(k))
         self.b1 = scipy.ndimage.convolve(self.y, self.k_conj, mode='constant');
 
     @staticmethod
-    def _matvec_functor(k, k_conj, l, eta, m, n):
-        Av = np.empty((m, n), dtype=np.float32)
-        Av2 = np.empty((m, n), dtype=np.float32)
-        Av_x = np.empty((m, n), dtype=np.float32)
-        Av_y = np.empty((m, n), dtype=np.float32)
-        
+    def _matvec_functor(k, k_conj, l, eta, m, n, Av, Av2, Av_x, Av_y):
         def inner(k, k_conj, l, eta, m, n, Av, Av2, Av_x, Av_y, v):
             v = v.reshape(m, n)
 
@@ -49,7 +49,8 @@ class ConjGradSolver(utils.CommonSolver):
         b = np.empty_like(x_hat, dtype=np.float32)
         m, n = x_hat.shape
         A = scipy.sparse.linalg.LinearOperator((m*n, m*n),
-            self._matvec_functor(self.k, self.k_conj, self.l, eta, m, n))
+            self._matvec_functor(self.k, self.k_conj, self.l, eta, m, n,
+                                 self.Av, self.Av2, self.Av_x, self.Av_y))
 
         start_time = time.time()
 

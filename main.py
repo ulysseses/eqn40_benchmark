@@ -12,8 +12,7 @@ import time
 
 def main_boilerplate():
     # Load image and kernel
-    #img = sm.imresize(sm.face(), 2.0, interp='bicubic')
-    img = sm.face()
+    img = sm.imresize(sm.face(), 4.0, interp='bicubic')
     x = utils.rgb2ycc(img.astype(np.float32) / 255.)[:, :, 0]
     k = utils.gaussian_kernel(2, 3.5)
     noise = np.random.normal(0., 0.01, x.shape).astype(np.float32)
