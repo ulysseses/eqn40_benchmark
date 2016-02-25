@@ -12,6 +12,7 @@ import time
 
 def main_boilerplate():
     # Load image and kernel
+    #img = sm.imresize(sm.face(), 2.0, interp='bicubic')
     img = sm.face()
     x = utils.rgb2ycc(img.astype(np.float32) / 255.)[:, :, 0]
     k = utils.gaussian_kernel(2, 3.5)
@@ -30,14 +31,16 @@ def eval_psnr(x_hat, x, border=0):
 
 def benchmark_gisa(eta0, etamax, rho, T, p, J, l, times):
     def gisa(solver, y, k, eta0, etamax, rho, T):
+        total_duration = 0.
         x_hat = y
         eta = eta0
         itr = 0
         while eta < etamax:
             for t in range(T):
-                x_hat, _ = solver.benchmark(x_hat, eta)
+                x_hat, duration = solver.benchmark(x_hat, eta)
+                total_duration += duration
             eta *= rho
-        return x_hat
+        return x_hat, total_duration
     
     # Load image and kernel
     img, x, k, _ = main_boilerplate()
@@ -46,32 +49,34 @@ def benchmark_gisa(eta0, etamax, rho, T, p, J, l, times):
     # Fourier Solution
     y0 = fourier.filterFFT(x, k, abs=True, correlate=False)
     start_time = time.time()
+    avg_duration = 0.
     psnr = 0.
     for t in range(times):
         y = y0 + np.random.normal(0., 0.01, x.shape).astype(np.float32)
         fourier_solver = fourier.FourierSolver(k, p, J, l, y)
-        x_hat = gisa(fourier_solver, y, k, eta0, etamax, rho, T)
+        x_hat, duration = gisa(fourier_solver, y, k, eta0, etamax, rho, T)
+        avg_duration += duration
         x_hat = np.clip(x_hat, 0., 1.)
         psnr += eval_psnr(x_hat, x, border)
-    duration = time.time() - start_time
-    duration /= times
+    avg_duration /= times
     psnr /= times
-    print("Fourier PSNR: %.2f duration %.2f" % (psnr, duration))
+    print("Fourier PSNR: %.2f duration %.2f" % (psnr, avg_duration))
     
     # Conjugate Gradient Solution
     y0 = scipy.ndimage.convolve(x, k, mode='constant')
     start_time = time.time()
+    avg_duration = 0.
     psnr = 0.
     for t in range(times):
         y = y0 + np.random.normal(0., 0.01, x.shape).astype(np.float32)
         conj_grad_solver = conjgrad.ConjGradSolver(k, p, J, l, y)
-        x_hat = gisa(conj_grad_solver, y, k, eta0, etamax, rho, T)
+        x_hat, duration = gisa(conj_grad_solver, y, k, eta0, etamax, rho, T)
+        avg_duration += duration
         x_hat = np.clip(x_hat, 0., 1.)
         psnr += eval_psnr(x_hat, x, border)
-    duration = time.time() - start_time
-    duration /= times
+    avg_duration /= times
     psnr /= times
-    print("ConjGrad PSNR: %.2f duration %.2f" % (psnr, duration))
+    print("ConjGrad PSNR: %.2f duration %.2f" % (psnr, avg_duration))
     
     # Baseline
     baseline_psnr = eval_psnr(y, x, border)
@@ -111,7 +116,7 @@ if __name__ == '__main__':
     p = 0.8
     J = 2
     l = 0.0005
-    times = 5
+    times = 3
     
-    #benchmark_eqn40(eta0, p, J, l, times)
+    benchmark_eqn40(eta0, p, J, l, times)
     benchmark_gisa(eta0, etamax, rho, T, p, J, l, times)

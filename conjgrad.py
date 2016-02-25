@@ -61,9 +61,9 @@ class ConjGradSolver(utils.CommonSolver):
         b += self.b1
 
         x_hat, info = scipy.sparse.linalg.cg(A, b.flatten(), x0=x_hat.flatten(),
-                                             maxiter=5, tol=1e-4)
+                                             maxiter=2, tol=1e-4)
         x_hat = x_hat.reshape(m, n)
-        print("######DEBUG info:", info)
+        #print("######DEBUG info:", info)
 
         duration = time.time() - start_time
 
