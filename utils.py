@@ -82,13 +82,13 @@ class CommonSolver(object):
         out[thresh_locs] = np.sign(y_vals) * x
         return out
 
-    def boilerplate(self, x_hat, eta_inv):
+    def boilerplate(self, x_hat, eta):
         d_ref_x = circdiff2D(x_hat, axis=1)
         d_ref_y = circdiff2D(x_hat, axis=0)
-        d_x = self.GST(d_ref_x, 1./eta_inv)
-        d_y = self.GST(d_ref_y, 1./eta_inv)
+        d_x = self.GST(d_ref_x, 1./eta)
+        d_y = self.GST(d_ref_y, 1./eta)
         return d_x, d_y
 
     @abc.abstractmethod
-    def benchmark(self, x, eta_inv):
+    def benchmark(self, x, eta):
         raise NotImplementedError
