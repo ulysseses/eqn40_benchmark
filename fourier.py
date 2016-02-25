@@ -62,8 +62,7 @@ class FourierSolver(utils.CommonSolver):
         # Pre-calculate denominator
         Dx_mag2 = np.abs(psf2otf(deriv_x(), y.shape)) ** 2
         Dy_mag2 = np.abs(psf2otf(deriv_y(), y.shape)) ** 2
-        self.lD_mag2 = Dx_mag2 + Dy_mag2
-        self.lD_mag2 *= self.l
+        self.D_mag2 = Dx_mag2 + Dy_mag2
         self.K_mag2 = np.abs(self.K) ** 2
 
     def benchmark(self, x_hat, eta):
@@ -80,10 +79,10 @@ class FourierSolver(utils.CommonSolver):
         d_diffT[1:, :] += -np.diff(d_y, axis=0)
         DTd = np.fft.fft2(d_diffT)
 
-        numer = eta * DTd
+        numer = (self.l * eta) * DTd
         numer += np.conj(self.K) * self.Y
 
-        X_hat = numer / (eta * self.lD_mag2 + self.K_mag2)
+        X_hat = numer / ((self.l * eta) * self.D_mag2 + self.K_mag2)
         x_hat = np.real(np.fft.ifft2(X_hat))
 
         duration = time.time() - start_time

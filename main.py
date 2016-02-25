@@ -7,6 +7,7 @@ import utils
 import fourier
 import conjgrad
 import scipy.ndimage
+import time
 
 
 def main_boilerplate():
@@ -44,6 +45,7 @@ def benchmark_gisa(eta0, etamax, rho, T, p, J, l, times):
     
     # Fourier Solution
     y0 = fourier.filterFFT(x, k, abs=True, correlate=False)
+    start_time = time.time()
     psnr = 0.
     for t in range(times):
         y = y0 + np.random.normal(0., 0.01, x.shape).astype(np.float32)
@@ -51,11 +53,14 @@ def benchmark_gisa(eta0, etamax, rho, T, p, J, l, times):
         x_hat = gisa(fourier_solver, y, k, eta0, etamax, rho, T)
         x_hat = np.clip(x_hat, 0., 1.)
         psnr += eval_psnr(x_hat, x, border)
+    duration = time.time() - start_time
+    duration /= times
     psnr /= times
-    print("Fourier PSNR: %.2f" % psnr)
+    print("Fourier PSNR: %.2f duration %.2f" % (psnr, duration))
     
     # Conjugate Gradient Solution
     y0 = scipy.ndimage.convolve(x, k, mode='constant')
+    start_time = time.time()
     psnr = 0.
     for t in range(times):
         y = y0 + np.random.normal(0., 0.01, x.shape).astype(np.float32)
@@ -63,8 +68,10 @@ def benchmark_gisa(eta0, etamax, rho, T, p, J, l, times):
         x_hat = gisa(conj_grad_solver, y, k, eta0, etamax, rho, T)
         x_hat = np.clip(x_hat, 0., 1.)
         psnr += eval_psnr(x_hat, x, border)
+    duration = time.time() - start_time
+    duration /= times
     psnr /= times
-    print("ConjGrad PSNR: %.2f" % psnr)
+    print("ConjGrad PSNR: %.2f duration %.2f" % (psnr, duration))
     
     # Baseline
     baseline_psnr = eval_psnr(y, x, border)

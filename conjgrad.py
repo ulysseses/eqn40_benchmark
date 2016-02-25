@@ -19,28 +19,28 @@ class ConjGradSolver(utils.CommonSolver):
     def _matvec_functor(k, k_conj, l, eta, m, n):
         Av = np.empty((m, n), dtype=np.float32)
         Av2 = np.empty((m, n), dtype=np.float32)
-        Av2_x = np.empty((m, n), dtype=np.float32)
-        Av2_y = np.empty((m, n), dtype=np.float32)
+        Av_x = np.empty((m, n), dtype=np.float32)
+        Av_y = np.empty((m, n), dtype=np.float32)
         
-        def inner(k, k_conj, l, eta, m, n, Av, Av2, Av2_x, Av2_y, v):
+        def inner(k, k_conj, l, eta, m, n, Av, Av2, Av_x, Av_y, v):
             v = v.reshape(m, n)
 
             scipy.ndimage.convolve(v, k, output=Av, mode='constant');
-            scipy.ndimage.convolve(Av, k_conj, output=Av, mode='constant');
+            scipy.ndimage.convolve(Av, k_conj, output=Av2, mode='constant');
             
-            utils.circdiff2D(v, Av2_x, 1);
-            utils.circdiff2D(v, Av2_y, 0);
-            Av2[:, 0] = Av2_x[:, -1] - Av2_x[:, 0]
-            Av2[:, 1:] = -np.diff(Av2_x, axis=1)
-            Av2[0, :] += Av2_y[-1, :] - Av2_y[0, :]
-            Av2[1:, :] += -np.diff(Av2_y, axis=0)
-
-            Av += l * eta * Av2
+            utils.circdiff2D(v, Av_x, 1);
+            utils.circdiff2D(v, Av_y, 0);
+            Av[:, 0] = Av_x[:, -1] - Av_x[:, 0]
+            Av[:, 1:] = -np.diff(Av_x, axis=1)
+            Av[0, :] += Av_y[-1, :] - Av_y[0, :]
+            Av[1:, :] += -np.diff(Av_y, axis=0)
+            Av *= (l * eta)
+            Av += Av2
 
             Av = Av.flatten()
             return Av
         
-        matvec = lambda v: inner(k, k_conj, l, eta, m, n, Av, Av2, Av2_x, Av2_y, v)
+        matvec = lambda v: inner(k, k_conj, l, eta, m, n, Av, Av2, Av_x, Av_y, v)
         return matvec
 
     def benchmark(self, x_hat, eta):
@@ -61,9 +61,9 @@ class ConjGradSolver(utils.CommonSolver):
         b += self.b1
 
         x_hat, info = scipy.sparse.linalg.cg(A, b.flatten(), x0=x_hat.flatten(),
-                                             maxiter=5, tol=4.98e-2)
+                                             maxiter=5, tol=1e-4)
         x_hat = x_hat.reshape(m, n)
-        #print("######DEBUG info:", info)
+        print("######DEBUG info:", info)
 
         duration = time.time() - start_time
 
