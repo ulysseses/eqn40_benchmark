@@ -57,36 +57,38 @@ def circdiff2D(src, dst=None, axis=0):
 
 
 class CommonSolver(object):
-    def __init__(self, k, p, J, y):
+    def __init__(self, k, p, J, l, y):
         self.k = k
         self.y = y
         self.p = p
         self.J = J
+        self.l = l
 
-    def GST(self, y, eta):
+    def GST(self, y, eta_inv):
         p = self.p
         J = self.J
 
         # Threshold value
-        tau_val = (2*eta*(1-p))**(1/(2-p)) + eta*p*((2*eta*(1-p))**((p-1)/(2-p)))
+        tau_val = (2*eta_inv*(1-p))**(1/(2-p)) + \
+            eta_inv*p*((2*eta_inv*(1-p))**((p-1)/(2-p)))
         # Locate thresholded locations
         thresh_locs = np.abs(y) > tau_val
         # Evaluate soft thresholds
         y_vals = y[thresh_locs]
         x = np.abs(y_vals)
         for _ in xrange(J):
-            x = np.abs(y_vals) - eta*p*(x**(p - 1))
+            x = np.abs(y_vals) - eta_inv*p*(x**(p - 1))
         out = np.zeros_like(y)
         out[thresh_locs] = np.sign(y_vals) * x
         return out
 
-    def boilerplate(self, x_hat, eta):
+    def boilerplate(self, x_hat, eta_inv):
         d_ref_x = circdiff2D(x_hat, axis=1)
         d_ref_y = circdiff2D(x_hat, axis=0)
-        d_x = self.GST(d_ref_x, eta)
-        d_y = self.GST(d_ref_y, eta)
+        d_x = self.GST(d_ref_x, 1./eta_inv)
+        d_y = self.GST(d_ref_y, 1./eta_inv)
         return d_x, d_y
 
     @abc.abstractmethod
-    def benchmark(self, x, eta):
+    def benchmark(self, x, eta_inv):
         raise NotImplementedError

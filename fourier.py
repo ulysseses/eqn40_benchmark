@@ -51,8 +51,8 @@ def deriv_y():
 
 
 class FourierSolver(utils.CommonSolver):
-    def __init__(self, k, p, J, y):
-        super(FourierSolver, self).__init__(k, p, J, y)
+    def __init__(self, k, p, J, l, y):
+        super(FourierSolver, self).__init__(k, p, J, l, y)
 
         # Pre-fetch data
         self.k = k
@@ -62,12 +62,13 @@ class FourierSolver(utils.CommonSolver):
         # Pre-calculate denominator
         Dx_mag2 = np.abs(psf2otf(deriv_x(), y.shape)) ** 2
         Dy_mag2 = np.abs(psf2otf(deriv_y(), y.shape)) ** 2
-        self.D_mag2 = Dx_mag2 + Dy_mag2
+        self.lD_mag2 = Dx_mag2 + Dy_mag2
+        self.lD_mag2 *= self.l
         self.K_mag2 = np.abs(self.K) ** 2
 
-    def benchmark(self, x_hat, eta):
+    def benchmark(self, x_hat, eta_inv):
         # Boilerplate to create necessary inputs of benchmarked routine
-        d_x, d_y = self.boilerplate(x_hat, eta)
+        d_x, d_y = self.boilerplate(x_hat, eta_inv)
         d_diffT = np.empty_like(d_x, dtype=np.float32)
 
         # Benchmark 
@@ -79,10 +80,10 @@ class FourierSolver(utils.CommonSolver):
         d_diffT[1:, :] += -np.diff(d_y, axis=0)
         DTd = np.fft.fft2(d_diffT)
 
-        numer = eta * DTd
+        numer = eta_inv * DTd
         numer += np.conj(self.K) * self.Y
 
-        X_hat = numer / (eta * self.D_mag2 + self.K_mag2)
+        X_hat = numer / (eta_inv * self.lD_mag2 + self.K_mag2)
         x_hat = np.real(np.fft.ifft2(X_hat))
 
         duration = time.time() - start_time

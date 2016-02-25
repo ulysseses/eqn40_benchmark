@@ -19,8 +19,8 @@ def main_boilerplate():
 
 
 def benchmark_gisa(eta0, etamax, rho, T, p, J, times):
-    def gisa(y, k, ):
-        
+    def gisa(y, k):
+        pass        
     # Load image and kernel
     img, x, k, noise = main_boilerplate()
     border = k.shape[0] // 2
@@ -60,12 +60,12 @@ def benchmark_eqn40(eta, p, J, times):
     
     # Fourier Solution
     y = fourier.filterFFT(x, k, abs=True, correlate=False) + noise
-    fourier_solver = fourier.FourierSolver(k, p, J, y)
+    fourier_solver = fourier.FourierSolver(k, p, J, l, y)
     helper(fourier_solver, y, eta, times, border, "Fourier")
 
     # Conjugate Gradient Solution
     y = scipy.ndimage.convolve(x, k, mode='constant') + noise
-    conj_grad_solver = conjgrad.ConjGradSolver(k, p, J, y)
+    conj_grad_solver = conjgrad.ConjGradSolver(k, p, J, l, y)
     helper(conj_grad_solver, y, eta, times, border, "ConjGrad")
 
 
@@ -77,6 +77,7 @@ if __name__ == '__main__':
     T = 1
     p = 0.8
     J = 2
+    l = 0.0005
     times = 5
     
     benchmark_eqn40(eta0, p, J, times)
